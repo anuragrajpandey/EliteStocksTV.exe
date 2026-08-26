@@ -1,0 +1,94 @@
+name: Build EliteStocks TV (Windows)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust (stable, MSVC)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend deps
+        run: npm install
+
+      # ---------------------------------------------------------------
+      # Bundle real mpv + the uosc on-screen-controller (themed to match
+      # the app) so the finished app ships a fully self-contained,
+      # portable player - no separate install step for the end user.
+      # ---------------------------------------------------------------
+      - name: Fetch mpv (via Chocolatey)
+        shell: pwsh
+        run: |
+          choco install mpv -y --no-progress
+          $mpv = Get-ChildItem -Path "C:\ProgramData\chocolatey\lib\mpv" -Recurse -Filter "mpv.exe" | Select-Object -First 1
+          if (-not $mpv) {
+            $mpv = Get-ChildItem -Path "C:\ProgramData\chocolatey" -Recurse -Filter "mpv.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $mpv) { throw "mpv.exe not found after choco install" }
+          Write-Host "Found mpv at: $($mpv.FullName)"
+          New-Item -ItemType Directory -Force -Path "src-tauri/mpv" | Out-Null
+          Copy-Item $mpv.FullName "src-tauri/mpv/mpv.exe" -Force
+          # bring along any DLLs mpv needs from the same folder
+          Get-ChildItem -Path $mpv.DirectoryName -Filter "*.dll" -ErrorAction SilentlyContinue |
+            ForEach-Object { Copy-Item $_.FullName "src-tauri/mpv/" -Force }
+
+      - name: Assemble mpv portable_config (app theme + keybindings)
+        shell: pwsh
+        run: |
+          $dst = "src-tauri/mpv/portable_config"
+          New-Item -ItemType Directory -Force -Path "$dst/scripts" | Out-Null
+          New-Item -ItemType Directory -Force -Path "$dst/script-opts" | Out-Null
+          Copy-Item "mpv-config/mpv.conf" "$dst/mpv.conf" -Force
+          Copy-Item "mpv-config/input.conf" "$dst/input.conf" -Force
+          Copy-Item "mpv-config/script-opts/uosc.conf" "$dst/script-opts/uosc.conf" -Force
+
+      - name: Fetch uosc on-screen controller
+        shell: pwsh
+        run: |
+          $dst = "src-tauri/mpv/portable_config/scripts/uosc.lua"
+          try {
+            Invoke-WebRequest -Uri "https://raw.githubusercontent.com/tomasklaen/uosc/main/uosc.lua" -OutFile $dst -UseBasicParsing
+            Write-Host "uosc.lua downloaded."
+          } catch {
+            Write-Warning "Could not download uosc.lua - falling back to mpv's built-in OSC so playback controls still work."
+            (Get-Content "src-tauri/mpv/portable_config/mpv.conf") -replace '^osc=no', 'osc=yes' |
+              Set-Content "src-tauri/mpv/portable_config/mpv.conf"
+          }
+
+      - name: Build Tauri app (NSIS + MSI installers)
+        run: npm run build
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: EliteStocksTV-windows-installers
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/msi/*.msi
+          if-no-files-found: error

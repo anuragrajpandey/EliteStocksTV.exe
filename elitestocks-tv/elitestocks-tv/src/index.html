@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>EliteStocks TV</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Custom titlebar (decorations:false in tauri.conf.json) -->
+  <header id="titlebar" data-tauri-drag-region>
+    <div class="tb-brand" data-tauri-drag-region>
+      <span class="tb-logo">ELITESTOCKS</span><span class="tb-logo-accent">TV</span>
+    </div>
+    <div class="tb-controls">
+      <button id="tb-min" class="tb-btn" title="Minimize">&#8211;</button>
+      <button id="tb-max" class="tb-btn" title="Maximize">&#9633;</button>
+      <button id="tb-close" class="tb-btn tb-btn-close" title="Close">&#10005;</button>
+    </div>
+  </header>
+
+  <!-- ============ LOGIN VIEW ============ -->
+  <section id="view-login" class="view active">
+    <div class="login-backdrop"></div>
+    <div class="login-card">
+      <div class="login-logo">
+        <span>ELITESTOCKS</span><span class="accent">TV</span>
+      </div>
+      <p class="login-tagline">All your channels. All your shows. One plan.</p>
+
+      <form id="login-form" autocomplete="off">
+        <label class="field">
+          <span>Server URL</span>
+          <input id="f-server" type="text" placeholder="http://your-server:port" required />
+        </label>
+        <label class="field">
+          <span>Username</span>
+          <input id="f-username" type="text" placeholder="Xtream Codes username" required />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input id="f-password" type="password" placeholder="Xtream Codes password" required />
+        </label>
+        <label class="field-check">
+          <input id="f-remember" type="checkbox" checked />
+          <span>Remember me on this device</span>
+        </label>
+
+        <button type="submit" id="login-btn" class="btn-primary">Sign In</button>
+        <p id="login-error" class="login-error" hidden></p>
+      </form>
+      <p class="login-footnote">Sign in with your Xtream Codes login (server, username &amp; password).</p>
+    </div>
+  </section>
+
+  <!-- ============ HOME / BROWSE VIEW ============ -->
+  <section id="view-home" class="view">
+    <nav id="nav">
+      <div class="nav-left">
+        <span class="nav-logo">ELITESTOCKS<span class="accent">TV</span></span>
+        <button class="nav-tab active" data-tab="live">Live TV</button>
+        <button class="nav-tab" data-tab="movies">Movies</button>
+        <button class="nav-tab" data-tab="series">TV Shows</button>
+      </div>
+      <div class="nav-right">
+        <div class="nav-search">
+          <input id="search-input" type="text" placeholder="Search..." />
+        </div>
+        <button id="nav-logout" class="nav-icon-btn" title="Sign out">&#9211;</button>
+      </div>
+    </nav>
+
+    <div id="hero" class="hero">
+      <div class="hero-backdrop" id="hero-backdrop"></div>
+      <div class="hero-gradient"></div>
+      <div class="hero-content">
+        <div class="hero-meta" id="hero-meta"></div>
+        <h1 id="hero-title" class="hero-title">EliteStocks TV</h1>
+        <p id="hero-desc" class="hero-desc"></p>
+        <div class="hero-actions">
+          <button id="hero-play" class="btn-hero btn-hero-play">&#9654; Play</button>
+          <button id="hero-info" class="btn-hero btn-hero-info">More Info</button>
+        </div>
+      </div>
+    </div>
+
+    <main id="rows-container"></main>
+  </section>
+
+  <!-- ============ DETAIL MODAL (movies / series) ============ -->
+  <div id="detail-modal" class="modal" hidden>
+    <div class="modal-backdrop" id="detail-close-backdrop"></div>
+    <div class="modal-card">
+      <button id="detail-close" class="modal-close">&#10005;</button>
+      <div class="modal-hero" id="detail-hero">
+        <div class="modal-hero-gradient"></div>
+        <div class="modal-hero-content">
+          <h2 id="detail-title"></h2>
+          <div class="modal-actions">
+            <button id="detail-play" class="btn-hero btn-hero-play">&#9654; Play</button>
+          </div>
+          <div class="modal-meta" id="detail-meta"></div>
+        </div>
+      </div>
+      <div class="modal-body">
+        <p id="detail-desc" class="modal-desc"></p>
+        <div id="detail-seasons" class="seasons" hidden></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ LOADING / TOAST ============ -->
+  <div id="loading" class="loading" hidden><div class="spinner"></div></div>
+  <div id="toast" class="toast" hidden></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
